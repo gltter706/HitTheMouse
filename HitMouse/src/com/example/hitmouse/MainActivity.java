@@ -5,10 +5,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageButton;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 
 import com.example.publicData.PublicData;
 
@@ -21,8 +25,8 @@ public class MainActivity extends Activity {
 	static ImageButton mouseButtons[] = null;
 	MouseButtonClickListener mouseButtonClickListener = null;
 
-	
-	
+	int widthPixels,heightPixels = 0;
+	int imageButtonHeight,imageButtonWidth = 0;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -32,6 +36,12 @@ public class MainActivity extends Activity {
 	}
 
 	public void init(){
+		DisplayMetrics dm = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(dm);
+		widthPixels = dm.widthPixels;
+		heightPixels = dm.heightPixels;
+		imageButtonHeight = (int) (heightPixels/4.5);
+		imageButtonWidth = widthPixels/3;
 		makeMouseThread = new MakeMouseThread();
 		backHoleHandler = new BackHoleHandler(getMainLooper());
 		makeMouseHandler = new MakeMouseHandler(getMainLooper());
@@ -46,9 +56,13 @@ public class MainActivity extends Activity {
 		mouseButtons[7] = (ImageButton) findViewById(R.id.image8);
 		mouseButtons[8] = (ImageButton) findViewById(R.id.image9);
 		mouseButtonClickListener = new MouseButtonClickListener();
+		TableRow.LayoutParams imageButtonParams = new TableRow.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+		imageButtonParams.width = imageButtonWidth;
+		imageButtonParams.height = imageButtonHeight;
 		for(int i = 0 ; i < PublicData.status.length ; i++){
 			PublicData.status[i] = 0;
 			mouseButtons[i].setOnClickListener(mouseButtonClickListener);
+			mouseButtons[i].setLayoutParams(imageButtonParams);
 		}
 	}
 	
@@ -155,7 +169,7 @@ public class MainActivity extends Activity {
 				backHoleThread.start();
 				System.out.println("backHoleThread-->start");
 			}
-			mouseButtons[index].setImageResource(R.drawable.ready);
+			mouseButtons[index].setImageResource(R.drawable.thehole);
 			PublicData.status[index] = 0;
 		} 
 	}
