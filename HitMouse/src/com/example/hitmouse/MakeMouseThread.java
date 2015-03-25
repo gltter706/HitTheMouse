@@ -7,11 +7,18 @@ import com.example.publicData.PublicData;
 import android.os.Message;
 
 public class MakeMouseThread extends Thread{
+	
+	private boolean runOrStop = true;
+	
+	public void setRunOrStop(boolean runOrStop){
+		this.runOrStop = runOrStop;
+	}
+	
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
 		super.run();
-		while(true){
+		while(runOrStop){
 		int random = new Random().nextInt(9);
 		Message createMsg = MainActivity.makeMouseHandler.obtainMessage();
 		createMsg.arg1 = random;

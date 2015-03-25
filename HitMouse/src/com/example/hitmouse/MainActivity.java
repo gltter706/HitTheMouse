@@ -1,6 +1,8 @@
 package com.example.hitmouse;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,9 +12,9 @@ import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
-import android.widget.ImageButton;
-import android.widget.TableLayout;
+import android.widget.ImageView;
 import android.widget.TableRow;
+import android.widget.TextView;
 
 import com.example.publicData.PublicData;
 
@@ -20,52 +22,86 @@ public class MainActivity extends Activity {
 	
 	BackHoleThread backHoleThread = null;
 	MakeMouseThread makeMouseThread = null;
+	TimeCounterThread timeCounterThread = null;
+	MouseCounterHandler mouseCounterHandler = null;
 	static BackHoleHandler backHoleHandler = null;
 	static MakeMouseHandler makeMouseHandler = null;
-	static ImageButton mouseButtons[] = null;
+	static TimeCounterHandler timeCounterHandler= null;
+	static ImageView mouseButtons[] = null;
 	MouseButtonClickListener mouseButtonClickListener = null;
-
+	
+	TextView tv_time = null;
+	TextView tv_goal = null;
+	TextView tv_hitNumber = null;
+	
+	int hitNumber = 0;
+	int goal = 50;
 	int widthPixels,heightPixels = 0;
-	int imageButtonHeight,imageButtonWidth = 0;
+	int ImageViewHeight,ImageViewWidth = 0;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		init();
 		makeMouseThread.start();
+		timeCounterThread.start();
 	}
 
 	public void init(){
+		hitNumber = 0;
+		PublicData.stayTime = 900;
+		PublicData.makeMouseTime = 700;
+		tv_time = (TextView)findViewById(R.id.tv_time);
+		tv_time.setText("时间" + "0s");
+		tv_goal = (TextView)findViewById(R.id.tv_goal);
+		tv_goal.setText("目标:" + goal + "只");
+		tv_hitNumber = (TextView)findViewById(R.id.tv_hitNumber);
+		tv_hitNumber.setText("你打中了" + hitNumber + "只地屎!");
 		DisplayMetrics dm = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(dm);
 		widthPixels = dm.widthPixels;
 		heightPixels = dm.heightPixels;
-		imageButtonHeight = (int) (heightPixels/4.5);
-		imageButtonWidth = widthPixels/3;
+		ImageViewHeight = (int) (heightPixels/4);
+		ImageViewWidth = (int) (widthPixels/4);
 		makeMouseThread = new MakeMouseThread();
+		timeCounterThread = new TimeCounterThread(30);
 		backHoleHandler = new BackHoleHandler(getMainLooper());
 		makeMouseHandler = new MakeMouseHandler(getMainLooper());
-		mouseButtons = new ImageButton[9];
-		mouseButtons[0] = (ImageButton) findViewById(R.id.image1);
-		mouseButtons[1] = (ImageButton) findViewById(R.id.image2);
-		mouseButtons[2] = (ImageButton) findViewById(R.id.image3);
-		mouseButtons[3] = (ImageButton) findViewById(R.id.image4);
-		mouseButtons[4] = (ImageButton) findViewById(R.id.image5);
-		mouseButtons[5] = (ImageButton) findViewById(R.id.image6);
-		mouseButtons[6] = (ImageButton) findViewById(R.id.image7);
-		mouseButtons[7] = (ImageButton) findViewById(R.id.image8);
-		mouseButtons[8] = (ImageButton) findViewById(R.id.image9);
+		timeCounterHandler = new TimeCounterHandler(getMainLooper());
+		mouseCounterHandler = new MouseCounterHandler(getMainLooper());
+		mouseButtons = new ImageView[9];
+		mouseButtons[0] = (ImageView) findViewById(R.id.image1);
+		mouseButtons[1] = (ImageView) findViewById(R.id.image2);
+		mouseButtons[2] = (ImageView) findViewById(R.id.image3);
+		mouseButtons[3] = (ImageView) findViewById(R.id.image4);
+		mouseButtons[4] = (ImageView) findViewById(R.id.image5);
+		mouseButtons[5] = (ImageView) findViewById(R.id.image6);
+		mouseButtons[6] = (ImageView) findViewById(R.id.image7);
+		mouseButtons[7] = (ImageView) findViewById(R.id.image8);
+		mouseButtons[8] = (ImageView) findViewById(R.id.image9);
 		mouseButtonClickListener = new MouseButtonClickListener();
-		TableRow.LayoutParams imageButtonParams = new TableRow.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-		imageButtonParams.width = imageButtonWidth;
-		imageButtonParams.height = imageButtonHeight;
-		for(int i = 0 ; i < PublicData.status.length ; i++){
+		
+		LayoutParams lp = mouseButtons[0].getLayoutParams();
+		lp.height = ImageViewHeight;
+		lp.width = ImageViewWidth;
+		for(int i = 0 ; i < 9 ; i++){
 			PublicData.status[i] = 0;
 			mouseButtons[i].setOnClickListener(mouseButtonClickListener);
-			mouseButtons[i].setLayoutParams(imageButtonParams);
+			mouseButtons[i].setLayoutParams(lp);
 		}
 	}
 	
+	public void setDizzyAndCountNumber(int index, Message back_msg){
+		if(1 == PublicData.status[index]){
+			mouseButtons[index].setImageResource(R.drawable.dizzy);
+			back_msg.arg1 = index;
+			back_msg.arg2 = 0;
+			hitNumber++;
+			tv_hitNumber.setText("你打中了" + hitNumber + "只地屎!");
+			PublicData.status[index] = 0;
+		}
+	}
+		
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -84,67 +120,31 @@ public class MainActivity extends Activity {
 			Message back_msg = backHoleHandler.obtainMessage();
 			switch(v.getId()){
 			case R.id.image1:
-				if(1 == PublicData.status[0]){
-				mouseButtons[0].setImageResource(R.drawable.dizzy);
-				back_msg.arg1 = 0;
-				back_msg.arg2 = 0;
-				}
+				setDizzyAndCountNumber(0, back_msg);
 				break;
 			case R.id.image2:
-				if(1 == PublicData.status[1]){
-					mouseButtons[1].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 1;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(1, back_msg);
 				break;
 			case R.id.image3:
-				if(1 == PublicData.status[2]){
-					mouseButtons[2].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 2;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(2, back_msg);
 				break;
 			case R.id.image4:
-				if(1 == PublicData.status[3]){
-					mouseButtons[3].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 3;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(3, back_msg);
 				break;
 			case R.id.image5:
-				if(1 == PublicData.status[4]){
-					mouseButtons[4].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 4;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(4, back_msg);
 				break;
 			case R.id.image6:
-				if(1 == PublicData.status[5]){
-					mouseButtons[5].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 5;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(5, back_msg);
 				break;
 			case R.id.image7:
-				if(1 == PublicData.status[6]){
-					mouseButtons[6].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 6;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(6, back_msg);
 				break;
 			case R.id.image8:
-				if(1 == PublicData.status[7]){
-					mouseButtons[7].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 7;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(7, back_msg);
 				break;
 			case R.id.image9:
-				if(1 == PublicData.status[8]){
-					mouseButtons[8].setImageResource(R.drawable.dizzy);
-					back_msg.arg1 = 8;
-					back_msg.arg2 = 0;
-					}
+				setDizzyAndCountNumber(8, back_msg);
 				break;
 			}
 			backHoleHandler.sendMessageDelayed(back_msg, PublicData.dizzyTime);
@@ -167,7 +167,6 @@ public class MainActivity extends Activity {
 			if(0 == msg.what){
 				backHoleThread = new BackHoleThread(index, is_hitted);
 				backHoleThread.start();
-				System.out.println("backHoleThread-->start");
 			}
 			mouseButtons[index].setImageResource(R.drawable.thehole);
 			PublicData.status[index] = 0;
@@ -190,14 +189,75 @@ public class MainActivity extends Activity {
 			back_msg.arg2 = 0;
 			int index = msg.arg1;
 			if(0 == PublicData.status[index]){
-				System.out.println("in-->MakeMouseHandler");
 				mouseButtons[index].setImageResource(R.drawable.comeout);
-				System.out.println("index-->"+index);
 				PublicData.status[index] = 1;
 				backHoleHandler.sendMessageDelayed(back_msg, PublicData.stayTime);
 			}
 		}
 	}
+	public class TimeCounterHandler extends Handler{
+		
+		public TimeCounterHandler(Looper looper){
+			super(looper);
+		}
+		@Override
+		public void handleMessage(Message msg) {
+			// TODO Auto-generated method stub
+			super.handleMessage(msg);
+			if(0x111 == msg.what){
+				int currentTime = msg.arg1;
+				tv_time.setText("时间:" + currentTime + "s");
+				if(0 == currentTime){
+					if(hitNumber < 80){
+						makeMouseThread.setRunOrStop(false);
+						timeCounterThread.setRunOrStop(false);
+						backHoleThread.setRunOrStop(false);
+						makeMouseThread.interrupt();
+						timeCounterThread.interrupt();
+						backHoleThread.interrupt();
+						AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+						.setMessage("你输了!T—T")
+						.setPositiveButton("怪我咯,不玩咯",new DialogInterface.OnClickListener(){
+
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+								// TODO Auto-generated method stub
+								MainActivity.this.finish();
+							}
+							
+						})
+						.setNegativeButton("尼玛再来一局!", new DialogInterface.OnClickListener(){
+
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+								// TODO Auto-generated method stub
+								init();
+								makeMouseThread.start();
+								timeCounterThread.start();
+							}
+							
+						}).create();
+						
+						dialog.setCanceledOnTouchOutside(false);
+						dialog.show();
+
+					}
+				}
+			}
+		}
+	}
 	
+	public class MouseCounterHandler extends Handler{
+		public MouseCounterHandler(Looper looper){
+			super(looper);
+		}
+		@Override
+		public void handleMessage(Message msg) {
+			// TODO Auto-generated method stub
+			super.handleMessage(msg);
+		}
+	}
 	
 }
